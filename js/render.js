@@ -1,4 +1,5 @@
-// Находим контейнер, куда будем вставлять фотографии
+import { openBigPicture } from './big-picture.js';
+
 const picturesContainer = document.querySelector('.pictures');
 
 // Находим шаблон одной миниатюры
@@ -19,6 +20,12 @@ const createPictureElement = (photo) => {
   image.alt = photo.description;
   likes.textContent = photo.likes;
   comments.textContent = photo.comments.length;
+
+  // ДОБАВЛЯЕМ ОБРАБОТЧИК КЛИКА (Пункт 2 задания)
+  pictureElement.addEventListener('click', (evt) => {
+    evt.preventDefault(); // Отменяем переход по ссылке, если она есть
+    openBigPicture(photo); // Передаем объект именно этой фотографии
+  });
 
   return pictureElement;
 };
