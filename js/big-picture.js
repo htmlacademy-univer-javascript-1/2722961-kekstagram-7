@@ -2,14 +2,16 @@
 const bigPicture = document.querySelector('.big-picture');
 const bigPictureImg = bigPicture.querySelector('.big-picture__img img');
 const likesCount = bigPicture.querySelector('.likes-count');
-const commentsCount = bigPicture.querySelector('.comments-count');
 const socialComments = bigPicture.querySelector('.social__comments');
 const socialCaption = bigPicture.querySelector('.social__caption');
-const closeButton = bigPicture.querySelector('.big-picture__cancel'); // или .cancel, посмотрите в html
-
-// Элементы, которые нужно спрятать по заданию
+const closeButton = bigPicture.querySelector('.big-picture__cancel'); // или .big-picture__cancel, проверьте в html
 const socialCommentCount = bigPicture.querySelector('.social__comment-count');
 const commentsLoader = bigPicture.querySelector('.comments-loader');
+
+// Переменные для порционной загрузки комментариев
+let currentComments = []; // Массив всех комментариев текущей фотографии
+let shownCommentsCount = 0; // Сколько сейчас показано на экране
+const COMMENTS_PER_PAGE = 5; // Количество комментариев, добавляемых за один раз
 
 // Функция для создания одного комментария (по шаблону из задания)
 const createCommentElement = (comment) => {
@@ -33,6 +35,37 @@ const createCommentElement = (comment) => {
   return li;
 };
 
+// Функция обновления счетчика (например, "5 из 12 комментариев")
+const updateCommentsCounter = () => {
+  const total = currentComments.length;
+  const shown = Math.min(shownCommentsCount, total);
+  // Сохраняем класс .comments-count для числа, как это было в исходной разметке
+  socialCommentCount.innerHTML = `${shown} из <span class="comments-count">${total}</span> комментариев`;
+};
+
+// Функция для отрисовки следующих 5 комментариев
+const renderNextComments = () => {
+  const fragment = document.createDocumentFragment();
+
+  // Берем срез массива от текущего количества до текущего + 5
+  const nextComments = currentComments.slice(shownCommentsCount, shownCommentsCount + COMMENTS_PER_PAGE);
+
+  nextComments.forEach((comment) => {
+    fragment.appendChild(createCommentElement(comment));
+  });
+
+  socialComments.appendChild(fragment);
+
+  // Обновляем счетчик "показано"
+  shownCommentsCount += nextComments.length;
+  updateCommentsCounter();
+
+  // Если показали все комментарии, прячем кнопку "Загрузить еще"
+  if (shownCommentsCount >= currentComments.length) {
+    commentsLoader.classList.add('hidden');
+  }
+};
+
 // Функция закрытия окна
 const closeBigPicture = () => {
   bigPicture.classList.add('hidden');
@@ -44,30 +77,29 @@ const closeBigPicture = () => {
 
 // Функция открытия окна с данными
 const openBigPicture = (photo) => {
-  // 1. Заполняем данные
+  // 1. Заполняем основные данные
   bigPictureImg.src = photo.url;
   likesCount.textContent = photo.likes;
-  commentsCount.textContent = photo.comments.length;
   socialCaption.textContent = photo.description;
 
-  // 2. Отрисовываем комментарии
+  // 2. Инициализируем комментарии (сбрасываем старые)
+  currentComments = photo.comments;
+  shownCommentsCount = 0;
   socialComments.innerHTML = ''; // Очищаем старое
-  const fragment = document.createDocumentFragment();
-  photo.comments.forEach((comment) => {
-    fragment.appendChild(createCommentElement(comment));
-  });
-  socialComments.appendChild(fragment);
 
-  // 3. Прячем счетчик и лоадер (задание пункт 4)
-  socialCommentCount.classList.add('hidden');
-  commentsLoader.classList.add('hidden');
+  // 3. Показываем счетчик и кнопку (убираем класс hidden)
+  socialCommentCount.classList.remove('hidden');
+  commentsLoader.classList.remove('hidden');
 
-  // 4. Показываем окно и отключаем скролл страницы (пункт 3 и 5)
+  // 4. Отрисовываем первую порцию комментариев
+  renderNextComments();
+
+  // 5. Показываем окно и отключаем скролл страницы
   bigPicture.classList.remove('hidden');
   document.body.classList.add('modal-open');
 
-  // 5. Вешаем обработчики закрытия (пункт 6)
-  // Обработчик клика по крестику
+  // 6. Вешаем обработчики закрытия
+  // Обработчик клика по крестику (используем once: true, чтобы не плодить обработчики)
   closeButton.addEventListener('click', closeBigPicture, { once: true });
 
   // Обработчик нажатия Esc
@@ -79,5 +111,8 @@ const openBigPicture = (photo) => {
   };
   document.addEventListener('keydown', onEscKeyDown);
 };
+
+// Вешаем обработчик на кнопку "Загрузить еще" один раз при загрузке скрипта
+commentsLoader.addEventListener('click', renderNextComments);
 
 export { openBigPicture };
